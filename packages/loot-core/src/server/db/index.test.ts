@@ -54,6 +54,21 @@ describe('Database', () => {
     expect((await db.getCategories()).length).toBe(1);
   });
 
+  test('inserting an account works', async () => {
+    await db.insertAccount({ name: 'HSBC Account 103' });
+    expect((await db.getAccounts()).length).toBe(1);
+  });
+
+  test('inserting an account detects duplicate', async () => {
+    expect.assertions(1);
+    await db.insertAccount({ name: 'hsbc account 103' });
+    await expect(() =>
+      db.insertAccount({ name: 'HSBC Account 103' }),
+    ).rejects.toThrowError(
+      'An existing item with the name HSBC Account 103 exists in accounts',
+    );
+  });
+
   test('transactions are sorted by date', async () => {
     await insertTransactions([
       { date: '2018-01-05', account: 'foo', amount: -23 },

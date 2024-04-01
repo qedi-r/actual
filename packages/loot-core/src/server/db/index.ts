@@ -274,6 +274,24 @@ export function updateWithSchema(table, fields) {
   return update(table, convertForUpdate(schema, schemaConfig, table, fields));
 }
 
+// Db-related validation.
+type TablesWithUniqueNames = 'accounts';
+async function validateUniqueName(
+  tableName: TablesWithUniqueNames,
+  newName: string,
+) {
+  const nameExists = await first(
+    `SELECT t.name FROM ${tableName} t WHERE UPPER(t.name) = ? and t.tombstone = 0`,
+    [newName.toUpperCase()],
+  );
+  if (nameExists) {
+    throw new Error(
+      `An existing item with the name ${newName} exists in ${tableName}`,
+    );
+  }
+  return true;
+}
+
 // Data-specific functions. Ideally this would be split up into
 // different files
 
@@ -580,6 +598,8 @@ export async function insertAccount(account) {
     'SELECT * FROM accounts WHERE offbudget = ? ORDER BY sort_order, name',
     [account.offbudget != null ? account.offbudget : 0],
   );
+
+  await validateUniqueName('accounts', account.name);
 
   // Don't pass a target in, it will default to appending at the end
   const { sort_order } = shoveSortOrders(accounts);
